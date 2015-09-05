@@ -1,0 +1,402 @@
+/*
+  easyexif.qpp
+
+  Qore Programming Language
+
+  Copyright 2012-2013 Qore Technologies
+
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option any later version.
+
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+
+#include <qore/Qore.h>
+#include <fstream>
+#include <vector>
+
+#include "exif.h"
+
+using namespace std;
+
+
+static QoreNamespace EasyexifNS("EasyExif");
+
+
+void init_easyexif_functions(QoreNamespace& ns);
+
+QoreStringNode * easyexif_module_init() {
+    init_easyexif_functions(EasyexifNS);
+    return 0;
+}
+
+void easyexif_module_ns_init(QoreNamespace *rns, QoreNamespace *qns) {
+    qns->addNamespace(EasyexifNS.copy());
+}
+
+void easyexif_module_delete() {
+   // nothing to do here in this case
+}
+
+
+// qore module symbols
+DLLEXPORT char qore_module_name[] = "easyexif";
+DLLEXPORT char qore_module_version[] = PACKAGE_VERSION;
+DLLEXPORT char qore_module_description[] = "Easy EXIF tools module";
+DLLEXPORT char qore_module_author[] = "Petr Vanek";
+DLLEXPORT char qore_module_url[] = "http://qore.org";
+DLLEXPORT int qore_module_api_major = QORE_MODULE_API_MAJOR;
+DLLEXPORT int qore_module_api_minor = QORE_MODULE_API_MINOR;
+DLLEXPORT qore_module_init_t qore_module_init = easyexif_module_init;
+DLLEXPORT qore_module_ns_init_t qore_module_ns_init = easyexif_module_ns_init;
+DLLEXPORT qore_module_delete_t qore_module_delete = easyexif_module_delete;
+DLLEXPORT qore_license_t qore_module_license = QL_LGPL;
+
+
+/** @mainpage %Qore %easyexif Module
+
+    This module provides functions and various helper constants to get EXIF information stored in JPEG files/photos:
+
+    - EasyExif::get_exif()
+
+    This module is released under a choice of two licenses:
+
+     - LGPL 2.1
+     - MIT (see COPYING.MIT in the source distribution for more information)
+
+    @section easyexif_result_hash EXIF Result Hash
+
+    - \c ByteAlign - int, 0 = Motorola byte alignment, 1 = Intel, @ref easyexif_constants_bytealign
+    - \c ImageDescription - string, an mage description
+    - \c Make - string, Camera manufacturer's name
+    - \c Model - string, Camera model
+    - \c Orientation - int, Image orientation @ref easyexif_constants_orientation
+    - \c BitsPerSample - int, Number of bits per component
+    - \c Software - string, Software used
+    - \c DateTime - string, File change date and time. Unfortunately the timestamp mask is not specified
+    - \c DateTimeOriginal - string, Original file date and time (may not exist). Unfortunately the timestamp mask is not specified
+    - \c DateTimeDigitized - string, Digitization date and time (may not exist). Unfortunately the timestamp mask is not specified
+    - \c SubSecTimeOriginal - string, Sub-second time that original picture was taken. Unfortunately the timestamp mask is not specified
+    - \c Copyright - string, File copyrtight information
+    - \c ExposureTime - float, Exposure time in seconds
+    - \c FNumber - float, F/stop
+    - \c ISOSpeedRatings - int, ISO speed
+    - \c ShutterSpeedValue - float, Shutter speed (reciprocal of exposure time)
+    - \c ExposureBiasValue - float, Exposure bias value in EV
+    - \c SubjectDistance - float, Distance to focus point in meters
+    - \c FocalLength - float, Focal length of lens in millimeters
+    - \c FocalLengthIn35mm - int, Focal length in 35mm film
+    - \c Flash - int, 0 = no flash, 1 = flash used. @ref easyexif_constants_flash
+    - \c MeteringMode - int, @ref easyexif_constants_meteringmode
+    - \c ImageWidth - int, Image width reported in EXIF data
+    - \c ImageHeight - int, Image height reported in EXIF data
+    - \c GeoLocation - hash, @ref easyexif_result_geolocation
+    - \c LensInfo - hash, @ref easyexif_result_lensinfo
+
+    @subsection easyexif_result_geolocation Geolocation Result Hash
+
+    GPS information embedded in file
+
+    - \c Latitude - float, Image latitude expressed as decimal
+    - \c Longitude - float, Image longitude expressed as decimal
+    - \c Altitude - float, Altitude in meters, relative to sea level
+    - \c AltitudeRef - int, 0 = above sea level, -1 = below sea level, @ref easyexif_constants_altituderef
+    - \c LatComponents - hash, @ref easyexif_result_geolocation_coords
+    - \c LonComponents - hash, @ref easyexif_result_geolocation_coords
+
+    @subsubsection easyexif_result_geolocation_coords Latitude and Longitude expressed in components
+
+    - \c degrees - float
+    - \c minutes - float
+    - \c seconds - float
+    - \c direction - string
+
+    @subsection easyexif_result_lensinfo Lens Info Result Hash
+
+    - FStopMin - float, Min aperture (f-stop)
+    - FStopMax - float, Max aperture (f-stop)
+    - FocalLengthMin - float, Min focal length (mm)
+    - FocalLengthMax - loat, Max focal length (mm)
+    - Make - string, Lens manufacturer
+    - Model - string, Lens model
+
+ */
+
+QoreHashNode* priv_create_hash(const BinaryNode *buffer, ExceptionSink *xsink) {
+    easyexif::EXIFInfo e;
+    // TODO/FIXME: conversions?
+    int err = e.parseFrom((unsigned char*)buffer->getPtr(), buffer->size());
+    switch (err) {
+        case PARSE_EXIF_SUCCESS: {
+                QoreHashNode* ret = new QoreHashNode();
+                ret->setKeyValue("ByteAlign", new QoreBigIntNode(e.ByteAlign), xsink);
+                ret->setKeyValue("ImageDescription", new QoreStringNode(e.ImageDescription), xsink);
+                ret->setKeyValue("Make", new QoreStringNode(e.Make), xsink);
+                ret->setKeyValue("Model", new QoreStringNode(e.Model), xsink);
+                ret->setKeyValue("Orientation", new QoreBigIntNode(e.Orientation), xsink);
+                ret->setKeyValue("BitsPerSample", new QoreBigIntNode(e.BitsPerSample), xsink);
+                ret->setKeyValue("Software", new QoreStringNode(e.Software), xsink);
+                ret->setKeyValue("DateTime", new QoreStringNode(e.DateTime), xsink);
+                ret->setKeyValue("DateTimeOriginal", new QoreStringNode(e.DateTimeOriginal), xsink);
+                ret->setKeyValue("DateTimeDigitized", new QoreStringNode(e.DateTimeDigitized), xsink);
+                ret->setKeyValue("SubSecTimeOriginal", new QoreStringNode(e.SubSecTimeOriginal), xsink);
+                ret->setKeyValue("Copyright", new QoreStringNode(e.Copyright), xsink);
+                ret->setKeyValue("ExposureTime", new QoreFloatNode(e.ExposureTime), xsink);
+                ret->setKeyValue("FNumber", new QoreFloatNode(e.FNumber), xsink);
+                ret->setKeyValue("ISOSpeedRatings", new QoreBigIntNode(e.ISOSpeedRatings), xsink);
+                ret->setKeyValue("ShutterSpeedValue", new QoreFloatNode(e.ShutterSpeedValue), xsink);
+                ret->setKeyValue("ExposureBiasValue", new QoreFloatNode(e.ExposureBiasValue), xsink);
+                ret->setKeyValue("SubjectDistance", new QoreFloatNode(e.SubjectDistance), xsink);
+                ret->setKeyValue("FocalLength", new QoreFloatNode(e.FocalLength), xsink);
+                ret->setKeyValue("FocalLengthIn35mm", new QoreBigIntNode(e.FocalLengthIn35mm), xsink);
+                ret->setKeyValue("Flash", new QoreBigIntNode(e.Flash), xsink);
+                ret->setKeyValue("MeteringMode", new QoreBigIntNode(e.MeteringMode), xsink);
+                ret->setKeyValue("ImageWidth", new QoreBigIntNode(e.ImageWidth), xsink);
+                ret->setKeyValue("ImageHeight", new QoreBigIntNode(e.ImageHeight), xsink);
+
+                //GeoLocation
+                QoreHashNode* geo = new QoreHashNode();
+                geo->setKeyValue("Latitude", new QoreFloatNode(e.GeoLocation.Latitude), xsink);
+                geo->setKeyValue("Longitude", new QoreFloatNode(e.GeoLocation.Longitude), xsink);
+                geo->setKeyValue("Altitude", new QoreFloatNode(e.GeoLocation.Altitude), xsink);
+                geo->setKeyValue("AltitudeRef", new QoreBigIntNode(e.GeoLocation.AltitudeRef), xsink);
+
+                QoreHashNode* lat = new QoreHashNode();
+                lat->setKeyValue("degrees", new QoreFloatNode(e.GeoLocation.LatComponents.degrees), xsink);
+                lat->setKeyValue("minutes", new QoreFloatNode(e.GeoLocation.LatComponents.minutes), xsink);
+                lat->setKeyValue("seconds", new QoreFloatNode(e.GeoLocation.LatComponents.seconds), xsink);
+//                lat->setKeyValue("direction", new QoreStringNode(e.GeoLocation.LatComponents.direction), xsink);
+                geo->setKeyValue("LatComponents", lat, xsink);
+
+                QoreHashNode* lon = new QoreHashNode();
+                lon->setKeyValue("degrees", new QoreFloatNode(e.GeoLocation.LonComponents.degrees), xsink);
+                lon->setKeyValue("minutes", new QoreFloatNode(e.GeoLocation.LonComponents.minutes), xsink);
+                lon->setKeyValue("seconds", new QoreFloatNode(e.GeoLocation.LonComponents.seconds), xsink);
+//                lon->setKeyValue("direction", new QoreStringNode(e.GeoLocation.LonComponents.direction), xsink);
+                geo->setKeyValue("LonComponents", lon, xsink);
+
+                ret->setKeyValue("GeoLocation", geo, xsink);
+
+                //LensInfo
+                QoreHashNode* lens = new QoreHashNode();
+                lens->setKeyValue("FStopMin", new QoreFloatNode(e.LensInfo.FStopMin), xsink);
+                lens->setKeyValue("FStopMax", new QoreFloatNode(e.LensInfo.FStopMax), xsink);
+                lens->setKeyValue("FocalLengthMin", new QoreFloatNode(e.LensInfo.FocalLengthMin), xsink);
+                lens->setKeyValue("FocalLengthMax", new QoreFloatNode(e.LensInfo.FocalLengthMax), xsink);
+                lens->setKeyValue("Make", new QoreStringNode(e.LensInfo.Make), xsink);
+                lens->setKeyValue("Model", new QoreStringNode(e.LensInfo.Model), xsink);
+                ret->setKeyValue("LensInfo", lens, xsink);
+
+                return ret; 
+            }
+        case PARSE_EXIF_ERROR_NO_JPEG:
+            xsink->raiseException("PARSE-EXIF-ERROR-NO-JPEG", "No JPEG markers found in buffer, possibly invalid JPEG file");
+            return 0;
+        case PARSE_EXIF_ERROR_NO_EXIF:
+            xsink->raiseException("PARSE-EXIF-ERROR-NO-EXIF", "No EXIF header found in JPEG file");
+            return 0;
+        case PARSE_EXIF_ERROR_UNKNOWN_BYTEALIGN:
+            xsink->raiseException("PARSE-EXIF-ERROR-UNKNOWN-BYTEALIGN", "Byte alignment specified in EXIF file was unknown (not Motorola or Intel)");
+            return 0;
+        case PARSE_EXIF_ERROR_CORRUPT:
+            xsink->raiseException("PARSE-EXIF-ERROR-CORRUPT", "EXIF header was found, but data was corrupted");
+            return 0;
+        default:
+            xsink->raiseException("PARSE-EXIF-UNKNOWN-ERROR", "An unnown error occurred");
+            return 0;
+    }
+}
+
+
+
+/** @defgroup easyexif_constants_bytealign Byte Alinment Constants
+
+    Used for values in key \c ByteAlign
+ */
+//@{
+namespace Qore::EasyExif;
+
+//! Motorola byte alignment
+const BYTEALIGN_MOTOROLA = 0;
+//! Intel byte alignment
+const BYTEALIGN_INTEL = 1;
+//@}
+
+/** @defgroup easyexif_constants_orientation Image Orientation Constants
+
+    Image orientation, start of data corresponds to where is the 0x0 point of the image.
+    Used for values in key \c Orientation
+ */
+//@{
+namespace Qore::EasyExif;
+
+//! unspecified in EXIF dat
+const ORIENTATTION_UNSPECIFIED = 0;
+//! upper left of image
+const ORIENTATTION_UPPER_LEFT = 1;
+//! lower right of image
+const ORIENTATTION_LOWER_RIGHT = 3;
+//! upper right of image
+const ORIENTATTION_UPPER_RIGHT = 6;
+//! lower left of image
+const ORIENTATTION_LOWER_LEFT = 8;
+//! undefined
+const ORIENTATTION_UNDEFINED = 9;
+//@}
+
+/** @defgroup easyexif_constants_meteringmode Metering Mode Constants
+
+    Used for values in key \c MeteringMode
+ */
+//@{
+namespace Qore::EasyExif;
+
+//! average
+const METERINGMODE_AVERAGE = 1;
+//! center weighted average
+const METERINGMODE_CENTER = 2;
+//! spot
+const METERINGMODE_SPOT = 3;
+//! multi-spot
+const METERINGMODE_MULTISPOT = 4;
+//! multi-segment
+const METERINGMODE_MULTISEGMENT = 5;
+//@}
+
+/** @defgroup easyexif_constants_flash Flash Usage Constants
+
+    Used for values in key \c Flash
+ */
+//@{
+namespace Qore::EasyExif;
+
+//! Flash was ON
+const FLASH_YES = 1;
+//! Flash was OFF
+const FLASH_NO = 0;
+//@}
+
+/** @defgroup easyexif_constants_altituderef Altitude Reference Constants
+
+    Used for values in key \c AltitudeRef
+ */
+//@
+namespace Qore::EasyExif;
+
+//! Key \c Altitude value is above the sea
+const ALTITUDEREF_ABOVE = 0;
+//! Key \c Altitude value is below the sea
+const ALTITUDEREF_BELOW = -1;
+//@}
+
+/** @defgroup easyexif_functions Exif Functions
+ */
+//@{
+namespace Qore::EasyExif;
+
+//! Get EXIF information hash from the JPEG file
+/** @param filename a file name or path with filename
+    @return hash @ref easyexif_result_hash
+
+    @note The file specified in \c filename is opened and readed into memory.
+
+    @throws PARSE-EXIF-ERROR-NO-JPEG No JPEG markers found in buffer, possibly invalid JPEG file
+    @throws PARSE-EXIF-ERROR-NO-EXIF No EXIF header found in JPEG file
+    @throws PARSE-EXIF-ERROR-UNKNOWN-BYTEALIGN Byte alignment specified in EXIF file was unknown (not Motorola or Intel)
+    @throws PARSE-EXIF-ERROR-CORRUPT EXIF header was found, but data was corrupted
+    @throws PARSE-EXIF-UNKNOWN-ERROR An unnown error occurred
+
+    <b>Example</b>
+
+    @code
+hash res = get_exif("/Users/pvanek/Pictures/auto-dvere/2014-05-16\ 09.12.36.jpg");
+printf("%N\n", res);
+
+hash: (26 members)
+  ByteAlign : 0
+  ImageDescription : ""
+  Make : "SAMSUNG"
+  Model : "GT-I9100"
+  Orientation : 1
+  BitsPerSample : 0
+  Software : "I9100ZSLSH"
+  DateTime : "2014:05:16 09:12:36"
+  DateTimeOriginal : "2014:05:16 09:12:36"
+  DateTimeDigitized : "2014:05:16 09:12:36"
+  SubSecTimeOriginal : ""
+  Copyright : ""
+  ExposureTime : 0.01
+  FNumber : 2.65
+  ISOSpeedRatings : 40
+  ShutterSpeedValue : 0
+  ExposureBiasValue : 0
+  SubjectDistance : 0
+  FocalLength : 4.03
+  FocalLengthIn35mm : 0
+  Flash : 1
+  MeteringMode : 2
+  ImageWidth : 1200
+  ImageHeight : 900
+  GeoLocation : hash: (6 members)
+    Latitude : 0
+    Longitude : 0
+    Altitude : 0
+    AltitudeRef : 0
+    LatComponents : hash: (3 members)
+      degrees : 0
+      minutes : 0
+      seconds : 0
+      direction : NOTHING
+    LonComponents : hash: (3 members)
+      degrees : 0
+      minutes : 0
+      seconds : 0
+      direction : NOTHING
+  LensInfo : hash: (6 members)
+    FStopMin : 0
+    FStopMax : 0
+    FocalLengthMin : 0
+    FocalLengthMax : 0
+    Make : ""
+    Model : ""
+    @endcode
+ */
+hash get_exif(string filename) [flags=RET_VALUE_ONLY] {
+
+    ifstream ifs(filename->getBuffer(), ios::in | ios::binary | ios::ate);
+
+    ifstream::pos_type fileSize = ifs.tellg();
+    ifs.seekg(0, ios::beg);
+
+    vector<char> bytes(fileSize);
+    ifs.read(&bytes[0], fileSize);
+
+    return priv_create_hash(new BinaryNode(&bytes[0], fileSize), xsink);
+}
+
+
+//! Get EXIF information hash from the JPEG file
+/** @param a binary value with JPEG data
+    @return hash @ref easyexif_result_hash
+
+    @throws PARSE-EXIF-ERROR-NO-JPEG No JPEG markers found in buffer, possibly invalid JPEG file
+    @throws PARSE-EXIF-ERROR-NO-EXIF No EXIF header found in JPEG file
+    @throws PARSE-EXIF-ERROR-UNKNOWN-BYTEALIGN Byte alignment specified in EXIF file was unknown (not Motorola or Intel)
+    @throws PARSE-EXIF-ERROR-CORRUPT EXIF header was found, but data was corrupted
+    @throws PARSE-EXIF-UNKNOWN-ERROR An unnown error occurred
+ */
+hash get_exif(binary buffer) [flags=RET_VALUE_ONLY] {
+    return priv_create_hash(buffer, xsink);
+}
+
+//@}
