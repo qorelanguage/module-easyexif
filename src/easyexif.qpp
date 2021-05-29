@@ -3,7 +3,7 @@
 
   Qore Programming Language
 
-  Copyright 2012-2013 Qore Technologies
+  Copyright 2012 - 2021 Qore Technologies
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -138,66 +138,66 @@ QoreHashNode* priv_create_hash(const BinaryNode *buffer, ExceptionSink *xsink) {
     int err = e.parseFrom((unsigned char*)buffer->getPtr(), buffer->size());
     switch (err) {
         case PARSE_EXIF_SUCCESS: {
-                QoreHashNode* ret = new QoreHashNode();
-                ret->setKeyValue("ByteAlign", new QoreBigIntNode(e.ByteAlign), xsink);
+                QoreHashNode* ret = new QoreHashNode(autoTypeInfo);
+                ret->setKeyValue("ByteAlign", e.ByteAlign, xsink);
                 ret->setKeyValue("ImageDescription", new QoreStringNode(e.ImageDescription), xsink);
                 ret->setKeyValue("Make", new QoreStringNode(e.Make), xsink);
                 ret->setKeyValue("Model", new QoreStringNode(e.Model), xsink);
-                ret->setKeyValue("Orientation", new QoreBigIntNode(e.Orientation), xsink);
-                ret->setKeyValue("BitsPerSample", new QoreBigIntNode(e.BitsPerSample), xsink);
+                ret->setKeyValue("Orientation", e.Orientation, xsink);
+                ret->setKeyValue("BitsPerSample", e.BitsPerSample, xsink);
                 ret->setKeyValue("Software", new QoreStringNode(e.Software), xsink);
                 ret->setKeyValue("DateTime", new QoreStringNode(e.DateTime), xsink);
                 ret->setKeyValue("DateTimeOriginal", new QoreStringNode(e.DateTimeOriginal), xsink);
                 ret->setKeyValue("DateTimeDigitized", new QoreStringNode(e.DateTimeDigitized), xsink);
                 ret->setKeyValue("SubSecTimeOriginal", new QoreStringNode(e.SubSecTimeOriginal), xsink);
                 ret->setKeyValue("Copyright", new QoreStringNode(e.Copyright), xsink);
-                ret->setKeyValue("ExposureTime", new QoreFloatNode(e.ExposureTime), xsink);
-                ret->setKeyValue("FNumber", new QoreFloatNode(e.FNumber), xsink);
-                ret->setKeyValue("ISOSpeedRatings", new QoreBigIntNode(e.ISOSpeedRatings), xsink);
-                ret->setKeyValue("ShutterSpeedValue", new QoreFloatNode(e.ShutterSpeedValue), xsink);
-                ret->setKeyValue("ExposureBiasValue", new QoreFloatNode(e.ExposureBiasValue), xsink);
-                ret->setKeyValue("SubjectDistance", new QoreFloatNode(e.SubjectDistance), xsink);
-                ret->setKeyValue("FocalLength", new QoreFloatNode(e.FocalLength), xsink);
-                ret->setKeyValue("FocalLengthIn35mm", new QoreBigIntNode(e.FocalLengthIn35mm), xsink);
-                ret->setKeyValue("Flash", new QoreBigIntNode(e.Flash), xsink);
-                ret->setKeyValue("MeteringMode", new QoreBigIntNode(e.MeteringMode), xsink);
-                ret->setKeyValue("ImageWidth", new QoreBigIntNode(e.ImageWidth), xsink);
-                ret->setKeyValue("ImageHeight", new QoreBigIntNode(e.ImageHeight), xsink);
+                ret->setKeyValue("ExposureTime", e.ExposureTime, xsink);
+                ret->setKeyValue("FNumber", e.FNumber, xsink);
+                ret->setKeyValue("ISOSpeedRatings", e.ISOSpeedRatings, xsink);
+                ret->setKeyValue("ShutterSpeedValue", e.ShutterSpeedValue, xsink);
+                ret->setKeyValue("ExposureBiasValue", e.ExposureBiasValue, xsink);
+                ret->setKeyValue("SubjectDistance", e.SubjectDistance, xsink);
+                ret->setKeyValue("FocalLength", e.FocalLength, xsink);
+                ret->setKeyValue("FocalLengthIn35mm", e.FocalLengthIn35mm, xsink);
+                ret->setKeyValue("Flash", e.Flash, xsink);
+                ret->setKeyValue("MeteringMode", e.MeteringMode, xsink);
+                ret->setKeyValue("ImageWidth", e.ImageWidth, xsink);
+                ret->setKeyValue("ImageHeight", e.ImageHeight, xsink);
 
                 //GeoLocation
-                QoreHashNode* geo = new QoreHashNode();
-                geo->setKeyValue("Latitude", new QoreFloatNode(e.GeoLocation.Latitude), xsink);
-                geo->setKeyValue("Longitude", new QoreFloatNode(e.GeoLocation.Longitude), xsink);
-                geo->setKeyValue("Altitude", new QoreFloatNode(e.GeoLocation.Altitude), xsink);
-                geo->setKeyValue("AltitudeRef", new QoreBigIntNode(e.GeoLocation.AltitudeRef), xsink);
+                QoreHashNode* geo = new QoreHashNode(autoTypeInfo);
+                geo->setKeyValue("Latitude", e.GeoLocation.Latitude, xsink);
+                geo->setKeyValue("Longitude", e.GeoLocation.Longitude, xsink);
+                geo->setKeyValue("Altitude", e.GeoLocation.Altitude, xsink);
+                geo->setKeyValue("AltitudeRef", e.GeoLocation.AltitudeRef, xsink);
 
-                QoreHashNode* lat = new QoreHashNode();
-                lat->setKeyValue("degrees", new QoreFloatNode(e.GeoLocation.LatComponents.degrees), xsink);
-                lat->setKeyValue("minutes", new QoreFloatNode(e.GeoLocation.LatComponents.minutes), xsink);
-                lat->setKeyValue("seconds", new QoreFloatNode(e.GeoLocation.LatComponents.seconds), xsink);
+                QoreHashNode* lat = new QoreHashNode(autoTypeInfo);
+                lat->setKeyValue("degrees", e.GeoLocation.LatComponents.degrees, xsink);
+                lat->setKeyValue("minutes", e.GeoLocation.LatComponents.minutes, xsink);
+                lat->setKeyValue("seconds", e.GeoLocation.LatComponents.seconds, xsink);
 //                lat->setKeyValue("direction", new QoreStringNode(e.GeoLocation.LatComponents.direction), xsink);
                 geo->setKeyValue("LatComponents", lat, xsink);
 
-                QoreHashNode* lon = new QoreHashNode();
-                lon->setKeyValue("degrees", new QoreFloatNode(e.GeoLocation.LonComponents.degrees), xsink);
-                lon->setKeyValue("minutes", new QoreFloatNode(e.GeoLocation.LonComponents.minutes), xsink);
-                lon->setKeyValue("seconds", new QoreFloatNode(e.GeoLocation.LonComponents.seconds), xsink);
+                QoreHashNode* lon = new QoreHashNode(autoTypeInfo);
+                lon->setKeyValue("degrees", e.GeoLocation.LonComponents.degrees, xsink);
+                lon->setKeyValue("minutes", e.GeoLocation.LonComponents.minutes, xsink);
+                lon->setKeyValue("seconds", e.GeoLocation.LonComponents.seconds, xsink);
 //                lon->setKeyValue("direction", new QoreStringNode(e.GeoLocation.LonComponents.direction), xsink);
                 geo->setKeyValue("LonComponents", lon, xsink);
 
                 ret->setKeyValue("GeoLocation", geo, xsink);
 
                 //LensInfo
-                QoreHashNode* lens = new QoreHashNode();
-                lens->setKeyValue("FStopMin", new QoreFloatNode(e.LensInfo.FStopMin), xsink);
-                lens->setKeyValue("FStopMax", new QoreFloatNode(e.LensInfo.FStopMax), xsink);
-                lens->setKeyValue("FocalLengthMin", new QoreFloatNode(e.LensInfo.FocalLengthMin), xsink);
-                lens->setKeyValue("FocalLengthMax", new QoreFloatNode(e.LensInfo.FocalLengthMax), xsink);
+                QoreHashNode* lens = new QoreHashNode(autoTypeInfo);
+                lens->setKeyValue("FStopMin", e.LensInfo.FStopMin, xsink);
+                lens->setKeyValue("FStopMax", e.LensInfo.FStopMax, xsink);
+                lens->setKeyValue("FocalLengthMin", e.LensInfo.FocalLengthMin, xsink);
+                lens->setKeyValue("FocalLengthMax", e.LensInfo.FocalLengthMax, xsink);
                 lens->setKeyValue("Make", new QoreStringNode(e.LensInfo.Make), xsink);
                 lens->setKeyValue("Model", new QoreStringNode(e.LensInfo.Model), xsink);
                 ret->setKeyValue("LensInfo", lens, xsink);
 
-                return ret; 
+                return ret;
             }
         case PARSE_EXIF_ERROR_NO_JPEG:
             xsink->raiseException("PARSE-EXIF-ERROR-NO-JPEG", "No JPEG markers found in buffer, possibly invalid JPEG file");

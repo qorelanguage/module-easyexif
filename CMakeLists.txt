@@ -17,7 +17,7 @@ include_directories( ${CMAKE_SOURCE_DIR}/src/easyexif )
 
 
 set(CPP_SRC
-    src/easyexif/exif.cpp    
+    src/easyexif/exif.cpp
 )
 set(QPP_SRC
     src/easyexif.qpp
@@ -29,10 +29,10 @@ set(QPP_SRC
 
 #add_definitions(-DUSE_UTF8)
 
-qore_wrap_qpp(QPP_SOURCES ${QPP_SRC})
+qore_wrap_qpp_value(QPP_SOURCES ${QPP_SRC})
 
 SET (module_name "easyexif")
-add_library(${module_name} SHARED ${CPP_SRC} ${QPP_SOURCES}) 
+add_library(${module_name} SHARED ${CPP_SRC} ${QPP_SOURCES})
 # easyexif 3rd party lib requires pretty new c++ standard
 set_property(TARGET ${module_name} PROPERTY CXX_STANDARD 11)
 
